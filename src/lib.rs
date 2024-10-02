@@ -2,12 +2,12 @@ pub mod commands;
 
 #[derive(thiserror::Error, Debug)]
 pub enum BencodeError {
-    #[error("Unhandled bencode value: {0}")]
+    #[error("Data type error: unknown or unhandled bencode data type `{0}`")]
     UnknownValue(char),
     #[error("Data format error: {0}")]
     DataFormat(String),
-    #[error("Unexpected end of bencoded input data")]
-    UnexpectedEnd,
+    // #[error("Unexpected end of bencoded input data")]
+    // UnexpectedEnd,
 }
 
 pub fn decode_bencoded_value(
@@ -17,7 +17,7 @@ pub fn decode_bencoded_value(
         Some('0'..='9') => decode_bencoded_str(encoded_value),
         Some('i') => decode_bencoded_int(encoded_value),
         Some('l') => decode_bencoded_list(encoded_value),
-        Some(c) => panic!("Unhandled bencoded value: {}", c),
+        Some(c) => Err(BencodeError::UnknownValue(c)),
         None => Ok((serde_json::Value::Null, &"")),
     }
 }
@@ -33,6 +33,15 @@ fn decode_bencoded_str(encoded_value: &str) -> Result<(serde_json::Value, &str),
             "invalid length value `{len_str}` provided for bencoded string value."
         ))
     })?;
+
+    if remainder.len() < len {
+        return Err(BencodeError::DataFormat(format!(
+            "provided string value's length `{}` exceeds remaining input length `{}`",
+            len,
+            remainder.len()
+        )));
+    }
+
     let string = remainder[..len].to_string();
 
     Ok((serde_json::Value::String(string), &remainder[len..]))

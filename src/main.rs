@@ -4,15 +4,17 @@ use bittorrent_starter_rust::{
 };
 use clap::Parser;
 
-// Usage: your_bittorrent.sh decode "<encoded_value>"
 fn main() -> Result<(), BencodeError> {
     let args = Args::parse();
 
     match &args.command {
-        Commands::Decode { encoded_value } => {
-            let (decoded_value, _) = decode_bencoded_value(&encoded_value)?;
-            println!("{}", decoded_value.to_string());
-        }
+        Commands::Decode { encoded_value } => match decode_bencoded_value(encoded_value) {
+            Ok((decoded_value, _)) => println!("{}", decoded_value.to_string()),
+            Err(e) => {
+                eprintln!("{e}");
+                std::process::exit(1);
+            }
+        },
     }
 
     Ok(())
