@@ -2,19 +2,37 @@ use serde_json;
 use std::env;
 // use serde_bencode
 
-#[allow(dead_code)]
 fn decode_bencoded_value(encoded_value: &str) -> serde_json::Value {
-    // If encoded_value starts with a digit, it's a number
-    if encoded_value.chars().next().unwrap().is_digit(10) {
-        // Example: "5:hello" -> "hello"
-        let colon_index = encoded_value.find(':').unwrap();
-        let number_string = &encoded_value[..colon_index];
-        let number = number_string.parse::<i64>().unwrap();
-        let string = &encoded_value[colon_index + 1..colon_index + 1 + number as usize];
-        return serde_json::Value::String(string.to_string());
-    } else {
-        panic!("Unhandled encoded value: {}", encoded_value)
+    match encoded_value.chars().next() {
+        Some('0'..='9') => decode_bencoded_str(encoded_value),
+        Some('i') => decode_bencoded_int(encoded_value),
+        Some(c) => panic!("Unhandled bencoded value: {}", c),
+        None => serde_json::Value::Null,
     }
+}
+
+fn decode_bencoded_str(encoded_value: &str) -> serde_json::Value {
+    let (len_str, remainder) = encoded_value
+        .split_once(':')
+        .expect("length `:` delimiter for bencoded string");
+
+    let len = len_str
+        .parse::<usize>()
+        .expect("valid length integer value for bencoded string");
+    let string = remainder[..len].to_string();
+
+    serde_json::Value::String(string)
+}
+
+fn decode_bencoded_int(encoded_value: &str) -> serde_json::Value {
+    let (num_str, _) = encoded_value[1..]
+        .split_once('e')
+        .expect("integer ending `e` delimiter for bencoded integer");
+    let num = num_str
+        .parse::<i64>()
+        .expect("valid `i64` value for bencoded integer");
+
+    serde_json::Value::Number(serde_json::Number::from(num))
 }
 
 // Usage: your_bittorrent.sh decode "<encoded_value>"
