@@ -17,6 +17,7 @@ pub fn decode_bencoded_value(
         Some('0'..='9') => decode_bencoded_str(encoded_value),
         Some('i') => decode_bencoded_int(encoded_value),
         Some('l') => decode_bencoded_list(encoded_value),
+        Some('d') => decode_bencoded_dict(encoded_value),
         Some(c) => Err(BencodeError::UnknownValue(c)),
         None => Ok((serde_json::Value::Null, &"")),
     }
@@ -86,4 +87,28 @@ fn decode_bencoded_list(encoded_value: &str) -> Result<(serde_json::Value, &str)
     }
 
     Ok((serde_json::Value::Array(values), &remainder[1..])) // consume (skip) `e` delimiter
+}
+
+fn decode_bencoded_dict(encoded_value: &str) -> Result<(serde_json::Value, &str), BencodeError> {
+    let mut map = serde_json::Map::new();
+    let mut remainder = &encoded_value[1..];
+
+    while !remainder.is_empty() && remainder.chars().next() != Some('e') {
+        let (key, rest) = decode_bencoded_value(remainder)?;
+        let key = match key {
+            serde_json::Value::String(k) => k,
+            _ => {
+                return Err(BencodeError::DataFormat(format!(
+                    "bencoded dictionary must contain valid `string` data type for `key` value, received `{}`",
+                    key
+                )))
+            }
+        };
+
+        let (val, rest) = decode_bencoded_value(rest)?;
+        map.insert(key, val);
+        remainder = rest;
+    }
+
+    Ok((serde_json::Value::Object(map), &remainder[1..])) // consume (skip) `e` delim
 }
