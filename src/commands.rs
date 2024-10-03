@@ -10,6 +10,10 @@ pub struct Args {
 #[derive(Subcommand)]
 pub enum Commands {
     #[command(about = "decode provided bencoded string")]
-    Decode { encoded_value: String },
-    // ...
+    Decode {
+        encoded_value: String,
+    },
+    Info {
+        torrent_file: String,
+    }, // ...
 }
