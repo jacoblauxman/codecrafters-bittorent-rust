@@ -28,6 +28,9 @@ fn decode_bencoded_str(encoded_value: &str) -> Result<(serde_json::Value, &str),
             "missing length `:` delimiter for bencoded string value".to_string(),
         )
     })?;
+
+    println!("remainder in `str` fn: {}", remainder);
+
     let len = len_str.parse::<usize>().map_err(|_| {
         BencodeError::DataFormat(format!(
             "invalid length value `{len_str}` provided for bencoded string value."
@@ -53,6 +56,9 @@ fn decode_bencoded_int(encoded_value: &str) -> Result<(serde_json::Value, &str),
             "missing ending `e` delimiter for bencoded integer value".to_string(),
         )
     })?;
+
+    println!("remainder in `int` fn: {}", remainder);
+
     let num = num_str
         .parse::<i64>()
         .map_err(|_| {
@@ -71,6 +77,8 @@ fn decode_bencoded_list(encoded_value: &str) -> Result<(serde_json::Value, &str)
     let mut values = Vec::new();
     let mut remainder = &encoded_value[1..];
 
+    println!("remainder in `list` fn: {}", remainder);
+
     while !remainder.is_empty() && remainder.chars().next() != Some('e') {
         let (value, rest) = decode_bencoded_value(remainder)?;
         values.push(value);
@@ -83,5 +91,5 @@ fn decode_bencoded_list(encoded_value: &str) -> Result<(serde_json::Value, &str)
         ));
     }
 
-    Ok((serde_json::Value::Array(values), remainder))
+    Ok((serde_json::Value::Array(values), &remainder[1..])) // consume (skip) `e` delimiter
 }
